@@ -5,7 +5,7 @@ permalink: /research/
 {% include toc %}
 
 #### My Research Interests  
-Since the beginning of my research career at [Bangladesh Agricultural University](https://www.bau.edu.bd/), I had been involved in several ad-hoc research. However, currently I have narrowed down the scope of my research area and focusing heavily on the following themes:
+Since the beginning of my research career at [Bangladesh Agricultural University](https://www.bau.edu.bd/), I had been involved in several ad-hoc research. However, currently I have narrowed down the scope of my research area and focusing heavily on the following themes:  
 -  Aquatic ecology  
 -  Riparian ecosystems  
 -  Ecology of invasive plants  
