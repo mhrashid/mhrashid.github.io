@@ -1,0 +1,1638 @@
+---
+permalink: /publications/
+author_profile: true
+---
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>JabRef references</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript">
+<!--
+// QuickSearch script for JabRef HTML export
+// Version: 3.0
+//
+// Copyright (c) 2006-2011, Mark Schenk
+//
+// This software is distributed under a Creative Commons Attribution 3.0 License
+// http://creativecommons.org/licenses/by/3.0/
+//
+// Features:
+// - intuitive find-as-you-type searching
+//    ~ case insensitive
+//    ~ ignore diacritics (optional)
+//
+// - search with/without Regular Expressions
+// - match BibTeX key
+//
+
+// Search settings
+var searchAbstract = true;	// search in abstract
+var searchReview = true;	// search in review
+
+var noSquiggles = true; 	// ignore diacritics when searching
+var searchRegExp = false; 	// enable RegExp searches
+
+
+if (window.addEventListener) {
+	window.addEventListener("load",initSearch,false); }
+else if (window.attachEvent) {
+	window.attachEvent("onload", initSearch); }
+
+function initSearch() {
+	// check for quick search table and searchfield
+	if (!document.getElementById('qs_table')||!document.getElementById('quicksearch')) { return; }
+
+	// load all the rows and sort into arrays
+	loadTableData();
+
+	//find the query field
+	qsfield = document.getElementById('qs_field');
+
+	// previous search term; used for speed optimisation
+	prevSearch = '';
+
+	//find statistics location
+	stats = document.getElementById('stat');
+	setStatistics(-1);
+
+	// set up preferences
+	initPreferences();
+
+	// shows the searchfield
+	document.getElementById('quicksearch').style.display = 'block';
+	document.getElementById('qs_field').onkeyup = quickSearch;
+}
+
+function loadTableData() {
+	// find table and appropriate rows
+	searchTable = document.getElementById('qs_table');
+	var allRows = searchTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+	// split all rows into entryRows and infoRows (e.g. abstract, review, bibtex)
+	entryRows = new Array(); infoRows = new Array(); absRows = new Array(); revRows = new Array();
+
+	// get data from each row
+	entryRowsData = new Array(); absRowsData = new Array(); revRowsData = new Array();
+
+	BibTeXKeys = new Array();
+
+	for (var i=0, k=0, j=0; i<allRows.length;i++) {
+		if (allRows[i].className.match(/entry/)) {
+			entryRows[j] = allRows[i];
+			entryRowsData[j] = stripDiacritics(getTextContent(allRows[i]));
+			allRows[i].id ? BibTeXKeys[j] = allRows[i].id : allRows[i].id = 'autokey_'+j;
+			j ++;
+		} else {
+			infoRows[k++] = allRows[i];
+			// check for abstract/review
+			if (allRows[i].className.match(/abstract/)) {
+				absRows.push(allRows[i]);
+				absRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			} else if (allRows[i].className.match(/review/)) {
+				revRows.push(allRows[i]);
+				revRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			}
+		}
+	}
+	//number of entries and rows
+	numEntries = entryRows.length;
+	numInfo = infoRows.length;
+	numAbs = absRows.length;
+	numRev = revRows.length;
+}
+
+function quickSearch(){
+
+	tInput = qsfield;
+
+	if (tInput.value.length == 0) {
+		showAll();
+		setStatistics(-1);
+		qsfield.className = '';
+		return;
+	} else {
+		t = stripDiacritics(tInput.value);
+
+		if(!searchRegExp) { t = escapeRegExp(t); }
+
+		// only search for valid RegExp
+		try {
+			textRegExp = new RegExp(t,"i");
+			closeAllInfo();
+			qsfield.className = '';
+		}
+			catch(err) {
+			prevSearch = tInput.value;
+			qsfield.className = 'invalidsearch';
+			return;
+		}
+	}
+
+	// count number of hits
+	var hits = 0;
+
+	// start looping through all entry rows
+	for (var i = 0; cRow = entryRows[i]; i++){
+
+		// only show search the cells if it isn't already hidden OR if the search term is getting shorter, then search all
+		if(cRow.className.indexOf('noshow')==-1 || tInput.value.length <= prevSearch.length){
+			var found = false;
+
+			if (entryRowsData[i].search(textRegExp) != -1 || BibTeXKeys[i].search(textRegExp) != -1){
+				found = true;
+			} else {
+				if(searchAbstract && absRowsData[i]!=undefined) {
+					if (absRowsData[i].search(textRegExp) != -1){ found=true; }
+				}
+				if(searchReview && revRowsData[i]!=undefined) {
+					if (revRowsData[i].search(textRegExp) != -1){ found=true; }
+				}
+			}
+
+			if (found){
+				cRow.className = 'entry show';
+				hits++;
+			} else {
+				cRow.className = 'entry noshow';
+			}
+		}
+	}
+
+	// update statistics
+	setStatistics(hits)
+
+	// set previous search value
+	prevSearch = tInput.value;
+}
+
+
+// Strip Diacritics from text
+// http://stackoverflow.com/questions/990904/javascript-remove-accents-in-strings
+
+// String containing replacement characters for stripping accents
+var stripstring =
+    'AAAAAAACEEEEIIII'+
+    'DNOOOOO.OUUUUY..'+
+    'aaaaaaaceeeeiiii'+
+    'dnooooo.ouuuuy.y'+
+    'AaAaAaCcCcCcCcDd'+
+    'DdEeEeEeEeEeGgGg'+
+    'GgGgHhHhIiIiIiIi'+
+    'IiIiJjKkkLlLlLlL'+
+    'lJlNnNnNnnNnOoOo'+
+    'OoOoRrRrRrSsSsSs'+
+    'SsTtTtTtUuUuUuUu'+
+    'UuUuWwYyYZzZzZz.';
+
+function stripDiacritics(str){
+
+    if(noSquiggles==false){
+        return str;
+    }
+
+    var answer='';
+    for(var i=0;i<str.length;i++){
+        var ch=str[i];
+        var chindex=ch.charCodeAt(0)-192;   // Index of character code in the strip string
+        if(chindex>=0 && chindex<stripstring.length){
+            // Character is within our table, so we can strip the accent...
+            var outch=stripstring.charAt(chindex);
+            // ...unless it was shown as a '.'
+            if(outch!='.')ch=outch;
+        }
+        answer+=ch;
+    }
+    return answer;
+}
+
+// http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+// NOTE: must escape every \ in the export code because of the JabRef Export...
+function escapeRegExp(str) {
+  return str.replace(/[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+function toggleInfo(articleid,info) {
+
+	var entry = document.getElementById(articleid);
+	var abs = document.getElementById('abs_'+articleid);
+	var rev = document.getElementById('rev_'+articleid);
+	var bib = document.getElementById('bib_'+articleid);
+
+	if (abs && info == 'abstract') {
+		abs.className.indexOf('noshow') == -1?abs.className = 'abstract noshow':abs.className = 'abstract show';
+	} else if (rev && info == 'review') {
+		rev.className.indexOf('noshow') == -1?rev.className = 'review noshow':rev.className = 'review show';
+	} else if (bib && info == 'bibtex') {
+		bib.className.indexOf('noshow') == -1?bib.className = 'bibtex noshow':bib.className = 'bibtex show';
+	} else {
+		return;
+	}
+
+	// check if one or the other is available
+	var revshow; var absshow; var bibshow;
+	(abs && abs.className.indexOf('noshow') == -1)? absshow = true: absshow = false;
+	(rev && rev.className.indexOf('noshow') == -1)? revshow = true: revshow = false;
+	(bib && bib.className.indexOf('noshow') == -1)? bibshow = true: bibshow = false;
+
+	// highlight original entry
+	if(entry) {
+		if (revshow || absshow || bibshow) {
+		entry.className = 'entry highlight show';
+		} else {
+		entry.className = 'entry show';
+		}
+	}
+
+	// When there's a combination of abstract/review/bibtex showing, need to add class for correct styling
+	if(absshow) {
+		(revshow||bibshow)?abs.className = 'abstract nextshow':abs.className = 'abstract';
+	}
+	if (revshow) {
+		bibshow?rev.className = 'review nextshow': rev.className = 'review';
+	}
+
+}
+
+function setStatistics (hits) {
+	if(hits < 0) { hits=numEntries; }
+	if(stats) { stats.firstChild.data = hits + '/' + numEntries}
+}
+
+function getTextContent(node) {
+	// Function written by Arve Bersvendsen
+	// http://www.virtuelvis.com
+
+	if (node.nodeType == 3) {
+	return node.nodeValue;
+	} // text node
+	if (node.nodeType == 1 && node.className != "infolinks") { // element node
+	var text = [];
+	for (var chld = node.firstChild;chld;chld=chld.nextSibling) {
+		text.push(getTextContent(chld));
+	}
+	return text.join("");
+	} return ""; // some other node, won't contain text nodes.
+}
+
+function showAll(){
+	closeAllInfo();
+	for (var i = 0; i < numEntries; i++){ entryRows[i].className = 'entry show'; }
+}
+
+function closeAllInfo(){
+	for (var i=0; i < numInfo; i++){
+		if (infoRows[i].className.indexOf('noshow') ==-1) {
+			infoRows[i].className = infoRows[i].className + ' noshow';
+		}
+	}
+}
+
+function clearQS() {
+	qsfield.value = '';
+	showAll();
+}
+
+function redoQS(){
+	showAll();
+	quickSearch(qsfield);
+}
+
+function updateSetting(obj){
+	var option = obj.id;
+	var checked = obj.value;
+
+	switch(option)
+	 {
+	 case "opt_searchAbs":
+	   searchAbstract=!searchAbstract;
+	   redoQS();
+	   break;
+	 case "opt_searchRev":
+	   searchReview=!searchReview;
+	   redoQS();
+	   break;
+	 case "opt_useRegExp":
+	   searchRegExp=!searchRegExp;
+	   redoQS();
+	   break;
+	 case "opt_noAccents":
+	   noSquiggles=!noSquiggles;
+	   loadTableData();
+	   redoQS();
+	   break;
+	 }
+}
+
+function initPreferences(){
+	if(searchAbstract){document.getElementById("opt_searchAbs").checked = true;}
+	if(searchReview){document.getElementById("opt_searchRev").checked = true;}
+	if(noSquiggles){document.getElementById("opt_noAccents").checked = true;}
+	if(searchRegExp){document.getElementById("opt_useRegExp").checked = true;}
+
+	if(numAbs==0) {document.getElementById("opt_searchAbs").parentNode.style.display = 'none';}
+	if(numRev==0) {document.getElementById("opt_searchRev").parentNode.style.display = 'none';}
+}
+
+function toggleSettings(){
+	var togglebutton = document.getElementById('showsettings');
+	var settings = document.getElementById('settings');
+
+	if(settings.className == "hidden"){
+		settings.className = "show";
+		togglebutton.innerText = "close settings";
+		togglebutton.textContent = "close settings";
+	}else{
+		settings.className = "hidden";
+		togglebutton.innerText = "settings...";
+		togglebutton.textContent = "settings...";
+	}
+}
+
+-->
+</script>
+<style type="text/css">
+form#quicksearch { width: auto; border-style: solid; border-color: gray; border-width: 1px 0px; padding: 0.7em 0.5em; display:none; position:relative; }
+span#searchstat {padding-left: 1em;}
+
+tr
+{
+    background: #f2f8fd;
+}
+tr:nth-child(4n+3),
+tr:nth-child(4n+4)
+{
+    background:  #f2f4f4;
+}
+
+div#settings { margin-top:0.7em; /* border-bottom: 1px transparent solid; background-color: #efefef; border: 1px grey solid; */ }
+div#settings ul {margin: 0; padding: 0; }
+div#settings li {margin: 0; padding: 0 1em 0 0; display: inline; list-style: none; }
+div#settings li + li { border-left: 2px #efefef solid; padding-left: 0.5em;}
+div#settings input { margin-bottom: 0px;}
+
+div#settings.hidden {display:none;}
+
+#showsettings { border: 1px grey solid; padding: 0 0.5em; float:right; line-height: 1.6em; text-align: right; }
+#showsettings:hover { cursor: pointer; }
+
+.invalidsearch { background-color: red; }
+input[type="button"] { background-color: #efefef; border: 1px #2E2E2E solid;}
+
+table { border: 1px gray none; width: 100%; empty-cells: show; border-spacing: 0em 0.1em; margin: 1em 0em; }
+th, td { border: none; padding: 0.5em; vertical-align: top; text-align: justify; }
+
+td a { color: navy; text-decoration: none; }
+td a:hover  { text-decoration: underline; }
+
+tr.noshow { display: none;}
+tr.highlight td { background-color: #EFEFEF; border-top: 2px #2E2E2E solid; font-weight: bold; }
+tr.abstract td, tr.review td, tr.bibtex td { background-color: #EFEFEF; text-align: justify; border-bottom: 2px #2E2E2E solid; }
+tr.nextshow td { border-bottom-style: none; }
+
+tr.bibtex pre { width: 100%; overflow: auto; white-space: pre-wrap;}
+p.infolinks { margin: 0.3em 0em 0em 0em; padding: 0px; }
+
+@media print {
+	p.infolinks, #qs_settings, #quicksearch, t.bibtex { display: none !important; }
+	tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<form action="" id="quicksearch">
+<input type="text" id="qs_field" autocomplete="off" placeholder="Type to search..." /> <input type="button" onclick="clearQS()" value="clear" />
+<span id="searchstat"><font $type-size-65>Matching entries:</font> <span id="stat">0</span></span>
+<div id="showsettings" onclick="toggleSettings()">settings...</div>
+<div id="settings" class="hidden">
+<ul>
+<li><input type="checkbox" class="search_setting" id="opt_searchAbs" onchange="updateSetting(this)"><label for="opt_searchAbs"> include abstract</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_searchRev" onchange="updateSetting(this)"><label for="opt_searchRev"> include review</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_useRegExp" onchange="updateSetting(this)"><label for="opt_useRegExp"> use RegExp</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_noAccents" onchange="updateSetting(this)"><label for="opt_noAccents"> ignore accents</label></li>
+</ul>
+</div>
+</form>
+<table id="qs_table" border="1">
+
+<tbody>
+	<tr style="background-color: #D3D3D3">
+		<td><h2> Book Chapters</h2></td>
+	</tr>
+<tr id="2013AsaedaAb" class="entry">
+	<td>Asaeda T, Zaman T and Rashid MH.<br> <b>Biochemical responses of aquatic macrophytes to two abiotic stresses</b><br> In: Peroxidases: Biochemical Characteristics, Functions and Potential Applications <br> Nova Science Publishers, Hauppauge, New York, USA , pp. 125-140. 2013.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2013AsaedaAb','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2013AsaedaAb" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@incollection{2013AsaedaAb,
+  author = {T. Asaeda and T. Zaman and M.H. Rashid},
+  editor = {Bogaert, Lucas and Coppens, Noah},
+  title = {Biochemical responses of aquatic macrophytes to two abiotic stresses},
+  booktitle = {Peroxidases: Biochemical Characteristics, Functions and Potential Applications},
+  publisher = {Nova Science Publishers},
+  year = {2013},
+  pages = {125-140}
+}
+</pre></td>
+</tr>
+<tr id="2013AsaedaB" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Floodplains of Regulated Rivers: Plant-Soil Interactions in Changing Ecosystems</b><br> In: Floodplains: Environmental Management, Restoration and Ecological Implications<br> Nova Science Publishers, Hauppauge, New York, USA , pp. 21-46. 2013.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2013AsaedaB','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2013AsaedaB" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@incollection{2013AsaedaB,
+  author = {T. Asaeda and M.H. Rashid},
+  editor = {Alcântara, Enner Herenio},
+  title = {Floodplains of Regulated Rivers: Plant-Soil Interactions in Changing Ecosystems},
+  booktitle = {Floodplains: Environmental Management, Restoration and Ecological Implications},
+  publisher = {Nova Science Publishers},
+  year = {2013},
+  pages = {21-46}
+}
+</pre></td>
+</tr>
+<tr id="2010AsaedaBA" class="entry">
+	<td>Asaeda T, Gomes PA, Rashid MH and Bahar M.<br><b>Morphology and biomass allocation of perennial emergent plants in different environmental conditions- A review</b><br> In: Freshwater Ecosystems and Aquaculture Research<br> Nova Science Publishers, Hauppauge, New York , pp. 107-136. 2010.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2010AsaedaBA','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2010AsaedaBA" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@incollection{2010AsaedaBA,
+  author = {T. Asaeda and P.I.A. Gomes and M.H. Rashid and M. Bahar},
+  editor = {De Carlo, Felice and Bassano, Alessio},
+  title = {Morphology and biomass allocation of perennial emergent plants in different environmental conditions- A review},
+  booktitle = {Freshwater Ecosystems and Aquaculture Research},
+  publisher = {Nova Science Publishers Inc},
+  year = {2010},
+  pages = {107-136}
+}
+</pre></td>
+</tr>
+<tr style="background-color: #D3D3D3">
+	<td><h2>Journal Articles</h2></td>
+</tr>
+<tr id="2016AsaedaLimnologica" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Effects of turbulence motion on the growth and physiology of aquatic plants</b><br> Limnologica.  Vol. Accepted (In press). 2016.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2016AsaedaLimnologica','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1016/j.limno.2016.02.006" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2016AsaedaLimnologica" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2016AsaedaLimnologica,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Effects of turbulence motion on the growth and physiology of aquatic plants},
+  journal = {Limnologica},
+  year = {2016},
+  volume = {Accepted (In press)},
+  doi = {10.1016/j.limno.2016.02.006}
+}
+</pre></td>
+</tr>
+<tr id="Atapaththu2015Cs" class="entry">
+	<td>Atapaththu K, Rashid MH and Asaeda T.<br><b>Growth and Oxidative Stress of Brittlewort (<em>Nitella pseudoflabellata</em>) in Response to Cesium Exposure</b><br> Bulletin of Environmental Contamination and Toxicology.  Vol. 96, pp. 347-353. 2016.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Atapaththu2015Cs','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1007/s00128-016-1736-4" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Atapaththu2015Cs" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{Atapaththu2015Cs,
+  author = {K.S.S. Atapaththu and M.H. Rashid and T. Asaeda},
+  title = {Growth and Oxidative Stress of Brittlewort (<em>Nitella pseudoflabellata</em>) in Response to Cesium Exposure},
+  journal = {Bulletin of Environmental Contamination and Toxicology},
+  year = {2016},
+  volume = {96},
+  pages = {347-353},
+  doi = {10.1007/s00128-016-1736-4}
+}
+</pre></td>
+</tr>
+<tr id="salamander2016" class="entry">
+	<td>Takahashi Y, Rashid MH, Sarkar A, Asaeda T, Isono M, Omura T and Koga K.<br><b>Use of ladderways in fragmented habitat to aid the movement of Japanese Giant Salamander (<em>Andrias japonicus</em>)</b><br> International Journal of River Basin Management.  Vol. 14, pp. 233-241. 2016.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('salamander2016','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1080/15715124.2016.1159572" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_salamander2016" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{salamander2016,
+  author = {Y. Takahashi and M.H. Rashid and A. Sarkar and T. Asaeda and M. Isono and T. Omura and K. Koga},
+  title = {Use of ladderways in fragmented habitat to aid the movement of Japanese Giant Salamander (<em>Andrias japonicus</em>)},
+  journal = {International Journal of River Basin Management},
+  year = {2016},
+  volume = {14},
+  pages = {233-241},
+  doi = {10.1080/15715124.2016.1159572}
+}
+</pre></td>
+</tr>
+<tr id="Sarkar.2015.com" class="entry">
+	<td>Sarkar A, Asaeda T, Wang Q and Rashid MH<br><b>Arbuscular mycorrhizal association for growth and nutrients assimilation of <em>Pharagmites japonica</em> and <em>Polygonum cuspidatum</em> plants growing on river bank soil</b><br>Communications in Soil Science and Plant Analysis.  Vol. 47, pp. 87-100. 2016.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Sarkar.2015.com','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1080/00103624.2015.1108432" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Sarkar.2015.com" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{Sarkar.2015.com,
+  author = {A. Sarkar and T. Asaeda and Q. Wang and M.H. Rashid},
+  title = {Arbuscular mycorrhizal association for growth and nutrients assimilation of <em>Pharagmites japonica</em> and <em>Polygonum cuspidatum</em> plants growing on river bank soil},
+  journal = {Communications in Soil Science and Plant Analysis},
+  year = {2016},
+  volume = {47},
+  pages = {87-100},
+  doi = {10.1080/00103624.2015.1108432}
+}
+</pre></td>
+</tr>
+<tr id="2014AsaedaAa" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Nutrient retention associated with phenological features in <em>Sparganium erectum</em> stands in a lowland stream</b> <br> River Research and Applications.  Vol. 31, pp. 207-215. 2015.
+	<p class="infolinks">[<a href="javascript:toggleInfo('2014AsaedaAa','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/rra.2733" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014AsaedaAa" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014AsaedaAa,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Nutrient retention associated with phenological features in <em>Sparganium erectum</em> stands in a lowland stream},
+  journal = {River Research and Applications},
+  year = {2015},
+  volume = {31},
+  pages = {207-215},
+  doi = {10.1002/rra.2733}
+}
+</pre></td>
+</tr>
+<tr id="2015Sarkar" class="entry">
+	<td>Sarkar A, Das R, Rashid MH, Ali M, Islam M, Asaeda T and Wang Q. <br> <b>Biocontrol potpotential of isolated <em>Trichoderma</em> spp. against <em>Pestalozzia theae</em> Saw. in tea</b><br> Acta Phytopathologica et Entomologica Hungarica.  Vol. 50, pp. 179-186. 2015.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2015Sarkar','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1556/038.50.2015.2.3" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2015Sarkar" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2015Sarkar,
+  author = {A. Sarkar and R.C. Das and M.H. Rashid and M. Ali and M.S. Islam and T. Asaeda and Q. Wang},
+  title = {Biocontrol potpotential of isolated <em>Trichoderma</em> spp. against <em>Pestalozzia theae</em> Saw. in tea},
+  journal = {Acta Phytopathologica et Entomologica Hungarica},
+  year = {2015},
+  volume = {50},
+  pages = {179-186},
+  doi = {10.1556/038.50.2015.2.3}
+}
+</pre></td>
+</tr>
+<tr id="2015SarkarS" class="entry">
+	<td>Sarkar A, Asaeda T, Wang Q and Rashid MH.<br> <b>Arbuscular mycorrhizal influences on growth, nutrient uptake, and use efficiency of <em>Miscanthus sacchariflorus</em> growing on nutrient-deficient river bank soil</b><br> Flora - Morphology, Distribution, Functional Ecology of Plants .  Vol. 212, pp. 46-54. 2015.
+	<p class="infolinks">[<a href="javascript:toggleInfo('2015SarkarS','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1016/j.flora.2015.01.005" target="_blank">DOI</a>]</p>
+	</td>
+<tr id="bib_2015SarkarS" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2015SarkarS,
+  author = {A. Sarkar and T. Asaeda and Q. Wang and M.H. Rashid},
+  title = {Arbuscular mycorrhizal influences on growth, nutrient uptake, and use efficiency of <em>Miscanthus sacchariflorus</em> growing on nutrient-deficient river bank soil},
+  journal = {Flora - Morphology, Distribution, Functional Ecology of Plants },
+  year = {2015},
+  volume = {212},
+  pages = {46-54},
+  doi = {10.1016/j.flora.2015.01.005}
+}
+</pre></td>
+</tr>
+<tr id="AnimeshChemEcol" class="entry">
+	<td>Sarkar A, Asaeda T, Wang Q and Rashid MH.<br> <b>Role of arbuscular mycorrhizal fungi on the performance of floodplain <em>Phragmites japonica</em> under nutrient stress condition</b><br> Chemistry and Ecology.  Vol. 31(5), pp. 402-415. 2015.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('AnimeshChemEcol','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1080/02757540.2015.1039527" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_AnimeshChemEcol" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{AnimeshChemEcol,
+  author = {A. Sarkar and T. Asaeda and Q. Wang and M.H. Rashid},
+  title = {Role of arbuscular mycorrhizal fungi on the performance of floodplain <em>Phragmites japonica</em> under nutrient stress condition},
+  journal = {Chemistry and Ecology},
+  year = {2015},
+  volume = {31},
+  number = {5},
+  pages = {402-415},
+  doi = {10.1080/02757540.2015.1039527}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda2015Ecohydro" class="entry">
+	<td>Asaeda T, Rashid MH and Ohta K.<br> <b>Nitrogen fixation by <em>Pueraria lobata</em> as a nitrogen source in the midstream sediment bar of a river</b><br> Ecohydrology.  Vol. Accepted for publication. 2015.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda2015Ecohydro','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/eco.1693" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda2015Ecohydro" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{Asaeda2015Ecohydro,
+  author = {T. Asaeda and M.H. Rashid and K. Ohta},
+  title = {Nitrogen fixation by <em>Pueraria lobata</em> as a nitrogen source in the midstream sediment bar of a river},
+  journal = {Ecohydrology},
+  year = {2015},
+  volume = {Accepted for publication},
+  doi = {10.1002/eco.1693}
+}
+</pre></td>
+</tr>
+<tr id="lalshak" class="entry">
+	<td>Biswas G, Sarkar A, Rashid MH, Shohan M, Islam M and Wang Q.<br> <b>Assessment of the irrigation feasibility of low-cost filtered municipal wastewater for red amaranth (<em>Amaranthus tricolor</em> L cv. Surma)</b><br> International Soil and Water Conservation Research.  Vol. 3, pp. 239-252. 2015.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('lalshak','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1016/j.iswcr.2015.07.001" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_lalshak" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{lalshak,
+  author = {G.C. Biswas and A. Sarkar and M.H. Rashid and M.H. Shohan and M. Islam and Q. Wang},
+  title = {Assessment of the irrigation feasibility of low-cost filtered municipal wastewater for red amaranth (<em>Amaranthus tricolor</em> L cv. Surma)},
+  journal = {International Soil and Water Conservation Research},
+  year = {2015},
+  volume = {3},
+  pages = {239-252},
+  doi = {10.1016/j.iswcr.2015.07.001}
+}
+</pre></td>
+</tr>
+<tr id="Rashid2015Kamal" class="entry">
+	<td>Rashid MH, Ali A, Kamal M and Uddin F.<br> <b>Growth and yield of transplanted aus rice as influenced by variety and number of seedlings per hill</b><br> International Journal of Experimental Agriculture.  Vol. 5, pp. 15-17. 2015.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Rashid2015Kamal','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Rashid2015Kamal" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{Rashid2015Kamal,
+  author = {M.H. Rashid and A.K.M. Ali and M.A. Kamal and F.M.J. Uddin},
+  title = {Growth and yield of transplanted aus rice as influenced by variety and number of seedlings per hill},
+  journal = {International Journal of Experimental Agriculture},
+  year = {2015},
+  volume = {5},
+  pages = {15-17}
+}
+</pre></td>
+</tr>
+<tr id="2014AsaedaA" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Modeling of nutrient dynamics and vegetation succession in midstream sediment bars of a regulated river</b><br> International Journal of River Basin Management.  Vol. 12, pp. 123-133. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014AsaedaA','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1080/15715124.2014.902377" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014AsaedaA" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014AsaedaA,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Modeling of nutrient dynamics and vegetation succession in midstream sediment bars of a regulated river},
+  journal = {International Journal of River Basin Management},
+  publisher = {Taylor &amp; Francis},
+  year = {2014},
+  volume = {12},
+  pages = {123-133},
+  doi = {10.1080/15715124.2014.902377}
+}
+</pre></td>
+</tr>
+<tr id="2014AsaedaAb" class="entry">
+	<td>Asaeda T, Rashid MH and Bakar R.<br> <b>Dynamic Modeling of Soil Nitrogen Budget and Vegetation Colonization in Sediment Bars of a Regulated River</b><br> River Research and Applications.  Vol. 31, pp. 470-484. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014AsaedaAb','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/rra.2802" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014AsaedaAb" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014AsaedaAb,
+  author = {T. Asaeda and M.H. Rashid and R.A. Bakar},
+  title = {Dynamic Modeling of Soil Nitrogen Budget and Vegetation Colonization in Sediment Bars of a Regulated River},
+  journal = {River Research and Applications},
+  year = {2014},
+  volume = {31},
+  pages = {470-484},
+  doi = {10.1002/rra.2802}
+}
+</pre></td>
+</tr>
+<tr id="2014AsaedaAc" class="entry">
+	<td>Asaeda T, Rashid MH and Sanjaya H.<br> <b>Flushing sediment from reservoirs triggers forestation in the downstream reaches</b><br> Ecohydrology.  Vol. 8, pp. 426-437. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014AsaedaAc','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/eco.1513" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014AsaedaAc" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014AsaedaAc,
+  author = {T. Asaeda and M.H. Rashid and H.L.K. Sanjaya},
+  title = {Flushing sediment from reservoirs triggers forestation in the downstream reaches},
+  journal = {Ecohydrology},
+  year = {2014},
+  volume = {8},
+  pages = {426-437},
+  doi = {10.1002/eco.1513}
+}
+</pre></td>
+</tr>
+<tr id="2014AsaedaAd" class="entry">
+	<td>Asaeda T, Senavirathna M, Kaneko Y and Rashid MH.<br> <b>Effect of calcium and magnesium on the growth and calcite encrustation of <em>Chara fibrosa</em></b><br> Aquatic Botany.  Vol. 113, pp. 100-106. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014AsaedaAd','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1016/j.aquabot.2013.11.002" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014AsaedaAd" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014AsaedaAd,
+  author = {T. Asaeda and M.D.H.J. Senavirathna and Y. Kaneko and M.H. Rashid},
+  title = {Effect of calcium and magnesium on the growth and calcite encrustation of <em>Chara fibrosa</em>},
+  journal = {Aquatic Botany},
+  year = {2014},
+  volume = {113},
+  pages = {100-106},
+  doi = {10.1016/j.aquabot.2013.11.002}
+}
+</pre></td>
+</tr>
+<tr id="2014Uddin" class="entry">
+	<td>Uddin F, Asaeda T and Rashid MH.<br> <b>Factors affecting the changes of downstream forestation in the South American river channels</b><br> Environment and Pollution.  Vol. 3, pp. 24-40. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014Uddin','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.5539/ep.v3n4p24" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014Uddin" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014Uddin,
+  author = {F.M.J. Uddin and T. Asaeda and M.H. Rashid},
+  title = {Factors affecting the changes of downstream forestation in the South American river channels},
+  journal = {Environment and Pollution},
+  year = {2014},
+  volume = {3},
+  pages = {24-40},
+  doi = {10.5539/ep.v3n4p24}
+}
+</pre></td>
+</tr>
+<tr id="2014UddinU" class="entry">
+	<td>Uddin F, Asaeda T and Rashid MH.<br> <b>Large-scale changes of the forestation in river channel below the dams in the southern African rivers: Assesment using the Google Earth images</b><br> Polish Journal of Ecology.  Vol. 62, pp. 645-661. 2014.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2014UddinU','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.3161/104.062.0407" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2014UddinU" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2014UddinU,
+  author = {F.M.J. Uddin and T. Asaeda and M.H. Rashid},
+  title = {Large-scale changes of the forestation in river channel below the dams in the southern African rivers: Assesment using the Google Earth images},
+  journal = {Polish Journal of Ecology},
+  year = {2014},
+  volume = {62},
+  pages = {645-661},
+  doi = {10.3161/104.062.0407}
+}
+</pre></td>
+</tr>
+<tr id="2013RashidR" class="entry">
+	<td>Rashid MH, Uddin M, Asaeda T and Uchida T.<br> <b>Dry mass and nutrient dynamics of herbaceous lianas in the floodplain of a regulated river</b><br> River Systems.  Vol. 21(1), pp. 15-28. 2013.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2013RashidR','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1127/1868-5749/2013/0075" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2013RashidR" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2013RashidR,
+  author = {M.H. Rashid and M.N. Uddin and T. Asaeda and T. Uchida},
+  title = {Dry mass and nutrient dynamics of herbaceous lianas in the floodplain of a regulated river},
+  journal = {River Systems},
+  year = {2013},
+  volume = {21},
+  number = {1},
+  pages = {15-28},
+  doi = {10.1127/1868-5749/2013/0075}
+}
+</pre></td>
+</tr>
+<tr id="2013Uddin" class="entry">
+	<td>Uddin F, Sarkar M and Rashid MH.<br> <b>Level of phosphorus and varietal effect with planting time on seed yield and yield contributing characters of mungbean</b><br> Bangladesh Research Publications Journal.  Vol. 9(2), pp. 139-144. 2013.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2013Uddin','bibtex')">BibTeX</a>] [<a href="http://www.bdresearchpublications.com/admin/journal/upload/1309121/1309121.pdf" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2013Uddin" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2013Uddin,
+  author = {F.M.J. Uddin and M.A.R. Sarkar and M.H. Rashid},
+  title = {Level of phosphorus and varietal effect with planting time on seed yield and yield contributing characters of mungbean},
+  journal = {Bangladesh Research Publications Journal},
+  year = {2013},
+  volume = {9},
+  number = {2},
+  pages = {139-144}
+}
+</pre></td>
+</tr>
+<tr id="2010Asaeda" class="entry">
+	<td>Asaeda T, Maniruzzaman M and Rashid MH.<br> <b>Effects of hydrological changes on algal blooming in the reservoir and the required modification for treatments</b><br> Bioscience Research.  Vol. 9, pp. 41-49. 2012.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2010Asaeda','bibtex')">BibTeX</a>] [<a href="https://www.researchgate.net/publication/259609346" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2010Asaeda" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2010Asaeda,
+  author = {T. Asaeda and M. Maniruzzaman and M.H. Rashid},
+  title = {Effects of hydrological changes on algal blooming in the reservoir and the required modification for treatments},
+  journal = {Bioscience Research},
+  year = {2012},
+  volume = {9},
+  pages = {41-49}
+}
+</pre></td>
+</tr>
+<tr id="2012AsaedaA" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>The impacts of sediment released from dams on downstream sediment bar vegetation</b><br> Journal of Hydrology.  Vol. 430-431, pp. 25-38. 2012.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2012AsaedaA','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1016/j.jhydrol.2012.01.040" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2012AsaedaA" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2012AsaedaA,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {The impacts of sediment released from dams on downstream sediment bar vegetation},
+  journal = {Journal of Hydrology},
+  year = {2012},
+  volume = {430-431},
+  pages = {25-38},
+  doi = {10.1016/j.jhydrol.2012.01.040}
+}
+</pre></td>
+</tr>
+<tr id="2012Uchida" class="entry">
+	<td>Uchida T, Nomura R, Asaeda T and Rashid MH.<br> <b>Co-existence of <em>Sicyos angulatus</em> and native plant species in the floodplain of Tama River, Japan</b><br> International Journal of Biodiversity and Conservation.  Vol. 4(9), pp. 336-347. 2012.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2012Uchida','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.5897/IJBC12.010" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2012Uchida" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2012Uchida,
+  author = {T. Uchida and R. Nomura and T. Asaeda and M.H. Rashid},
+  title = {Co-existence of <em>Sicyos angulatus</em> and native plant species in the floodplain of Tama River, Japan},
+  journal = {International Journal of Biodiversity and Conservation},
+  year = {2012},
+  volume = {4},
+  number = {9},
+  pages = {336-347},
+  doi = {10.5897/IJBC12.010}
+}
+</pre></td>
+</tr>
+<tr id="2011AsaedaA" class="entry">
+	<td>Asaeda T, Baniya M and Rashid MH.<br> <b>Effect of floods on the growth of <em>Phragmites japonica</em> on the sediment bar of regulated rivers: a modelling approach</b><br> International Journal of River Basin Management.  Vol. 9(3-4), pp. 211-220. 2011.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2011AsaedaA','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1080/15715124.2011.613837" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2011AsaedaA" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2011AsaedaA,
+  author = {T. Asaeda and M.B. Baniya and M.H. Rashid},
+  title = {Effect of floods on the growth of <em>Phragmites japonica</em> on the sediment bar of regulated rivers: a modelling approach},
+  journal = {International Journal of River Basin Management},
+  publisher = {Taylor &amp; Francis},
+  year = {2011},
+  volume = {9},
+  number = {3-4},
+  pages = {211-220},
+  doi = {10.1080/15715124.2011.613837}
+}
+</pre></td>
+</tr>
+<tr id="2011AsaedaAa" class="entry">
+	<td>Asaeda T, Gomes P, Sakamoto K and Rashid MH.<br> <b>Tree colonization trends on a sediment bar after a major flood</b><br> River Research and Applications.  Vol. 27(8), pp. 976-984. 2011.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2011AsaedaAa','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/rra.1372" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2011AsaedaAa" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2011AsaedaAa,
+  author = {T. Asaeda and P.I.A. Gomes and K. Sakamoto and M.H. Rashid},
+  title = {Tree colonization trends on a sediment bar after a major flood},
+  journal = {River Research and Applications},
+  publisher = {John Wiley &amp; Sons, Ltd.},
+  year = {2011},
+  volume = {27},
+  number = {8},
+  pages = {976-984},
+  doi = {10.1002/rra.1372}
+}
+</pre></td>
+</tr>
+<tr id="2011AsaedaAb" class="entry">
+	<td>Asaeda T, Rashid MH, Kotagiri S and Uchida T.<br> <b>The role of soil characteristics in the succession of two herbaceous lianas in a modified river floodplain</b><br> River Research and Applications.  Vol. 27(5), pp. 591-601. 2011.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2011AsaedaAb','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1002/rra.1374" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2011AsaedaAb" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2011AsaedaAb,
+  author = {T. Asaeda and M.H. Rashid and S. Kotagiri and T. Uchida},
+  title = {The role of soil characteristics in the succession of two herbaceous lianas in a modified river floodplain},
+  journal = {River Research and Applications},
+  publisher = {John Wiley &amp; Sons, Ltd.},
+  year = {2011},
+  volume = {27},
+  number = {5},
+  pages = {591-601},
+  doi = {10.1002/rra.1374}
+}
+</pre></td>
+</tr>
+<tr id="2010Rashid" class="entry">
+	<td>Rashid MH, Asaeda T and Uddin MN.<br> <b>Seasonal dynamics of soil macro- and micronutrients and phenolics under kudzu (<em>Pueraria lobata</em>) stands in floodplain of a modified river</b><br> Report of the Research and Education Center for Inlandwater Environment.  Vol. 6, pp. 43-53. 2010.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2010Rashid','bibtex')">BibTeX</a>] [<a href="http://ci.nii.ac.jp/naid/120002260486" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2010Rashid" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2010Rashid,
+  author = {M.H. Rashid and T. Asaeda and M.N. Uddin},
+  title = {Seasonal dynamics of soil macro- and micronutrients and phenolics under kudzu (<em>Pueraria lobata</em>) stands in floodplain of a modified river},
+  journal = {Report of the Research and Education Center for Inlandwater Environment},
+  year = {2010},
+  volume = {6},
+  pages = {43-53}
+}
+</pre></td>
+</tr>
+<tr id="2010RashidR" class="entry">
+	<td>Rashid MH, Asaeda T and Uddin MN.<br> <b>The Allelopathic Potential of Kudzu (<em>Pueraria montana</em> Lour.)</b><br> Weed Science.  Vol. 58, pp. 47-55. 2010.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2010RashidR','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1614/WS-09-106.1" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2010RashidR" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2010RashidR,
+  author = {M.H. Rashid and T. Asaeda and M.N. Uddin},
+  title = {The Allelopathic Potential of Kudzu (<em>Pueraria montana</em> Lour.)},
+  journal = {Weed Science},
+  year = {2010},
+  volume = {58},
+  pages = {47-55},
+  doi = {10.1614/WS-09-106.1}
+}
+</pre></td>
+</tr>
+<tr id="2010RashidRa" class="entry">
+	<td>Rashid MH, Asaeda T and Uddin MN.<br> <b>Litter-mediated allelopathic effects of kudzu (<em>Pueraria montana</em>) on <em>Bidens pilosa</em> and <em>Lolium perenne</em> and its persistence in soil</b><br> Weed Biology and Management.  Vol. 10(1), pp. 48-56. 2010.
+	<p class="infolinks">[<a href="javascript:toggleInfo('2010RashidRa','bibtex')">BibTeX</a>] [<a href="http://dx.doi.org/10.1111/j.1445-6664.2010.00366.x" target="_blank">DOI</a>]</p>
+	</td>
+<tr id="bib_2010RashidRa" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2010RashidRa,
+  author = {M.H. Rashid and T. Asaeda and M.N. Uddin},
+  title = {Litter-mediated allelopathic effects of kudzu (<em>Pueraria montana</em>) on <em>Bidens pilosa</em> and <em>Lolium perenne</em> and its persistence in soil},
+  journal = {Weed Biology and Management},
+  publisher = {Blackwell Publishing},
+  year = {2010},
+  volume = {10},
+  number = {1},
+  pages = {48-56},
+  doi = {10.1111/j.1445-6664.2010.00366.x}
+}
+</pre></td>
+</tr>
+<tr id="2010Uddin" class="entry">
+	<td>Uddin MM, Asaeda T, Rashid MH and Bahar M.<br> <b>Biomass distribution and material translocation in two herbaceous lianas in floodplain of a regulated river</b><br> Report of the Research and Education Center for Inlandwater Environment.  Vol. 6, pp. 55-67. 2010.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2010Uddin','bibtex')">BibTeX</a>] [<a href="http://ci.nii.ac.jp/naid/120002260487" target="_blank">DOI</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2010Uddin" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2010Uddin,
+  author = {M.N. Uddin and T. Asaeda and M.H. Rashid and M.M. Bahar},
+  title = {Biomass distribution and material translocation in two herbaceous lianas in floodplain of a regulated river},
+  journal = {Report of the Research and Education Center for Inlandwater Environment},
+  year = {2010},
+  volume = {6},
+  pages = {55-67}
+}
+</pre></td>
+</tr>
+<tr id="2008Rashid" class="entry">
+	<td>Rashid MH, Akhter H, Islam N, Parvez M and Hasan M.<br> <b>Grain yield of wheat cultivars as influenced by nitrogen level under rainfed and irrigated conditions</b><br> Bangladesh Journal of Progressive Science and Technology.  Vol. 6(1), pp. 141-144. 2008.
+	<p class="infolinks">[<a href="javascript:toggleInfo('2008Rashid','bibtex')">BibTeX</a>]</p>
+	</td>
+<tr id="bib_2008Rashid" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2008Rashid,
+  author = {M.H. Rashid and H. Akhter and N. Islam and M.N. Parvez and M.A. Hasan},
+  title = {Grain yield of wheat cultivars as influenced by nitrogen level under rainfed and irrigated conditions},
+  journal = {Bangladesh Journal of Progressive Science and Technology},
+  year = {2008},
+  volume = {6},
+  number = {1},
+  pages = {141-144}
+}
+</pre></td>
+</tr>
+<tr id="2007Alam" class="entry">
+	<td>Alam A, Sarkar M, Uddin M, Parvez M and Rashid MH.<br> <b>Effect of spacing, seedling age and number of seedling per hill on the performance of rice cv. BRRI dhan29 under SRI method</b><br> Bangladesh Journal of Progressive Science &amp; Technology.  Vol. 5(2), pp. 289-292. 2007.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2007Alam','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2007Alam" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2007Alam,
+  author = {A. Alam and M.A.R. Sarkar and M.N. Uddin and M.N. Parvez and M.H. Rashid},
+  title = {Effect of spacing, seedling age and number of seedling per hill on the performance of rice cv. BRRI dhan29 under SRI method},
+  journal = {Bangladesh Journal of Progressive Science &amp; Technology},
+  year = {2007},
+  volume = {5},
+  number = {2},
+  pages = {289-292}
+}
+</pre></td>
+</tr>
+<tr id="2007Masud" class="entry">
+	<td>Masud M, Bhuiya M, Begum M, Akhter H and Rashid MH.<br> <b>Effect of row arrangement and weeding regime on the performance of rice CV. BRRI dhan 29</b><br> Bangladesh Journal of Crop Science.  Vol. 18, pp. 323-330. 2007.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2007Masud','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2007Masud" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2007Masud,
+  author = {M.A. Masud and M.S.U. Bhuiya and M. Begum and H. Akhter and M.H. Rashid},
+  title = {Effect of row arrangement and weeding regime on the performance of rice CV. BRRI dhan 29},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2007},
+  volume = {18},
+  pages = {323-330}
+}
+</pre></td>
+</tr>
+<tr id="2007Rashid" class="entry">
+	<td>Rashid MH, Uddin M, Islam A, Alam A and Anwar M.<br> <b>Efficiencies and economics of some weed control methods in transplant aman rice cv. BRRI dhan32</b><br> Bangladesh Journal of Crop Science.  Vol. 18(2), pp. 259-264. 2007.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2007Rashid','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2007Rashid" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2007Rashid,
+  author = {M.H. Rashid and M.H. Uddin and A.K.M.M. Islam and A.H.M.J. Alam and M.P. Anwar},
+  title = {Efficiencies and economics of some weed control methods in transplant aman rice cv. BRRI dhan32},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2007},
+  volume = {18},
+  number = {2},
+  pages = {259-264}
+}
+</pre></td>
+</tr>
+<tr id="2006Parvez" class="entry">
+	<td>Parvez M, Islam N, Rashid MH and Amin A.<br> <b>Fertilizer management of hybrid rice cv. Jagoroni under System of Rice Intensification (SRI) in boro season</b><br> Bangladesh Journal of Crop Science.  Vol. 17(1), pp. 147-153. 2006.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2006Parvez','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2006Parvez" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2006Parvez,
+  author = {M.N. Parvez and N. Islam and M.H. Rashid and A.K.M.R. Amin},
+  title = {Fertilizer management of hybrid rice cv. Jagoroni under System of Rice Intensification (SRI) in boro season},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2006},
+  volume = {17},
+  number = {1},
+  pages = {147-153}
+}
+</pre></td>
+</tr>
+<tr id="2005Akter" class="entry">
+	<td>Akhter H, Islam N, Masud M and Rashid MH.<br> <b>Seed quality of wheat as influenced by nitrogen level under rainfed and irrigated conditions</b><br> Bangladesh Journal of Seed Science and Technology.  Vol. 9, pp. 143-147. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Akter','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Akter" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Akter,
+  author = {H. Akhter and N. Islam and M.A. Masud and M.H. Rashid},
+  title = {Seed quality of wheat as influenced by nitrogen level under rainfed and irrigated conditions},
+  journal = {Bangladesh Journal of Seed Science and Technology},
+  year = {2005},
+  volume = {9},
+  pages = {143-147}
+}
+</pre></td>
+</tr>
+<tr id="2005Anwar" class="entry">
+	<td>Anwar M, Rashid MH and Hasan A.<br> <b>Effect of row arrangement and number of seedlings hill$^-1$ on the performance of late transplant aman rice cv. BR23</b><br> Bangladesh Journal of Crop Science.  Vol. 16(1), pp. 17-21. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Anwar','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Anwar" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Anwar,
+  author = {M.P. Anwar and M.H. Rashid and A.K. Hasan},
+  title = {Effect of row arrangement and number of seedlings hill$^-1$ on the performance of late transplant aman rice cv. BR23},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2005},
+  volume = {16},
+  number = {1},
+  pages = {17-21}
+}
+</pre></td>
+</tr>
+<tr id="2005Begum" class="entry">
+	<td>Begum S, Hossain S, Rashid MH and Anwar M.<br> <b>Comparative study on yield and fibre quality of some cotton (<em>Gossypium hirsutum</em>) genotypes</b><br> Bangladesh Journal of Crop Science.  Vol. 16(2), pp. 369-373. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Begum','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Begum" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Begum,
+  author = {S. Begum and S. Hossain and M.H. Rashid and M.P. Anwar},
+  title = {Comparative study on yield and fibre quality of some cotton (<em>Gossypium hirsutum</em>) genotypes},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2005},
+  volume = {16},
+  number = {2},
+  pages = {369-373}
+}
+</pre></td>
+</tr>
+<tr id="2005Ferdows" class="entry">
+	<td>Ferdows J, Akbar M, Rashid MH and Karim M.<br> <b>Spikelet sterility of rice as influenced by potassium fertilization</b><br> Bangladesh Journal of Crop Science.  Vol. 16(1), pp. 79-85. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Ferdows','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Ferdows" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Ferdows,
+  author = {J. Ferdows and M.K. Akbar and M.H. Rashid and M.M. Karim},
+  title = {Spikelet sterility of rice as influenced by potassium fertilization},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2005},
+  volume = {16},
+  number = {1},
+  pages = {79-85}
+}
+</pre></td>
+</tr>
+<tr id="2005Hasan" class="entry">
+	<td>Hasan A, Anwar M and Rashid MH.<br> <b>Response of late transplant aman rice cv. BR23 to planting geometry and number of seedlings per hill</b><br> Bangladesh Journal of Crop Science.  Vol. 16(1), pp. 123-127. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Hasan','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Hasan" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Hasan,
+  author = {A.K. Hasan and M.P. Anwar and M.H. Rashid},
+  title = {Response of late transplant aman rice cv. BR23 to planting geometry and number of seedlings per hill},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2005},
+  volume = {16},
+  number = {1},
+  pages = {123-127}
+}
+</pre></td>
+</tr>
+<tr id="2005Hossain" class="entry">
+	<td>Hossain M, Salim M, Sarkar M and Rashid MH.<br> <b>Production of late planted <em>Olitorius</em> jute seed under intercropping with transplant aman rice</b><br> Journal of the Bangladesh Society for Agricultural Science and Technology.  Vol. 2(1-2), pp. 175-179. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Hossain','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Hossain" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Hossain,
+  author = {M.M.M. Hossain and M. Salim and M.A.R. Sarkar and M.H. Rashid},
+  title = {Production of late planted <em>Olitorius</em> jute seed under intercropping with transplant aman rice},
+  journal = {Journal of the Bangladesh Society for Agricultural Science and Technology},
+  year = {2005},
+  volume = {2},
+  number = {1-2},
+  pages = {175-179}
+}
+</pre></td>
+</tr>
+<tr id="2005Khan" class="entry">
+	<td>Khan M, Hasan A, Rashid MH and Ahmed F.<br> <b>Effect of nitrogen and boron on the yield of wheat cv. Kanchan</b><br> Journal of the Bangladesh Agricultural University.  Vol. 3(2), pp. 215-220. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Khan','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Khan" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Khan,
+  author = {M.M. Khan and A.K. Hasan and M.H. Rashid and F. Ahmed},
+  title = {Effect of nitrogen and boron on the yield of wheat cv. Kanchan},
+  journal = {Journal of the Bangladesh Agricultural University},
+  year = {2005},
+  volume = {3},
+  number = {2},
+  pages = {215-220}
+}
+</pre></td>
+</tr>
+<tr id="2005Rahman" class="entry">
+	<td>Rahman M, Rashid MH, Karim M and Hossain M.<br> <b>Performance of hybrid rice (Sonarbangla 1) as influenced by row spacing and nitrogen fertilization</b><br> Bangladesh Journal of Agricultural Sciences.  Vol. 32(1), pp. 45-50. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Rahman','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Rahman" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Rahman,
+  author = {M.Z. Rahman and M.H. Rashid and M.M. Karim and M.M.M. Hossain},
+  title = {Performance of hybrid rice (Sonarbangla 1) as influenced by row spacing and nitrogen fertilization},
+  journal = {Bangladesh Journal of Agricultural Sciences},
+  year = {2005},
+  volume = {32},
+  number = {1},
+  pages = {45-50}
+}
+</pre></td>
+</tr>
+<tr id="2005Saha" class="entry">
+	<td>Saha A, Hossain S, Uddin M, Rashid MH and Khan M.<br> <b>Effect of planting date and phosphorus fertilization on growth and yield of mungbean</b><br> Bangladesh Journal of Crop Science.  Vol. 16(2), pp. 143-148. 2005.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2005Saha','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2005Saha" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2005Saha,
+  author = {A.K. Saha and S.M.A. Hossain and M.N. Uddin and M.H. Rashid and M.M.H. Khan},
+  title = {Effect of planting date and phosphorus fertilization on growth and yield of mungbean},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2005},
+  volume = {16},
+  number = {2},
+  pages = {143-148}
+}
+</pre></td>
+</tr>
+<tr id="2004Akbar" class="entry">
+	<td>Akbar M, Sarker A, Bhuyia M, Rashid MH and Ferdows J.<br> <b>Performance of aman rice as influenced by seedling age under system of rice intensification</b><br> Bangladesh Journal of Crop Science.  Vol. 13-15, pp. 111-116. 2004.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2004Akbar','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2004Akbar" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2004Akbar,
+  author = {M.K. Akbar and A.U. Sarker and M.S.U. Bhuyia and M.H. Rashid and J. Ferdows},
+  title = {Performance of aman rice as influenced by seedling age under system of rice intensification},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2004},
+  volume = {13-15},
+  pages = {111-116}
+}
+</pre></td>
+</tr>
+<tr id="2004Rashid" class="entry">
+	<td>Rashid MH, Islam N and Bhuiya M.<br> <b>Performance of boro rice as influenced by initial plant density under system of rice intensification</b><br> Bangladesh Journal of Crop Science.  Vol. 13-15, pp. 71-76. 2004.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2004Rashid','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2004Rashid" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2004Rashid,
+  author = {M.H. Rashid and N. Islam and M.S.U. Bhuiya},
+  title = {Performance of boro rice as influenced by initial plant density under system of rice intensification},
+  journal = {Bangladesh Journal of Crop Science},
+  year = {2004},
+  volume = {13-15},
+  pages = {71-76}
+}
+</pre></td>
+</tr>
+<tr id="2004Saifullah" class="entry">
+	<td>Saifullah M, Rashid MH and Uddin M.<br> <b>Effect of phosphorus and sulphur on seed yield of rapeseed cv. BRRI Sarisha 6</b><br> Bangladesh Journal of Seed Science and Technology.  Vol. 8(1-2), pp. 13-16. 2004.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('2004Saifullah','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_2004Saifullah" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@article{2004Saifullah,
+  author = {M. Saifullah and M.H. Rashid and M.N. Uddin},
+  title = {Effect of phosphorus and sulphur on seed yield of rapeseed cv. BRRI Sarisha 6},
+  journal = {Bangladesh Journal of Seed Science and Technology},
+  year = {2004},
+  volume = {8},
+  number = {1-2},
+  pages = {13-16}
+}
+</pre></td>
+</tr>
+<tr style="background-color: #D3D3D3">
+	<td><h2>Conference Proceedings</h2></td>
+</tr>
+<tr id="iahr2015" class="entry">
+	<td>Rashid MH and Asaeda T.<br> <b>Seasonal variation of carbohydrates in <em>Pueraria montana</em> as affected by soil characteristics in a river floodplain</b><br> In: The Proceedings of the 36th IAHR World Congress. The Hague, the Netherlands, 28 June-3 July, 2015. pp. 1-4.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('iahr2015','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_iahr2015" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{iahr2015,
+  author = {M.H. Rashid and T. Asaeda},
+  title = {Seasonal variation of carbohydrates in <em>Pueraria montana</em> as affected by soil characteristics in a river floodplain},
+  booktitle = {the 36th IAHR World Congress},
+  year = {2015},
+  pages = {1-4}
+}
+</pre></td>
+</tr>
+<tr id="AnimeshECES2014" class="entry">
+	<td>Sarkar A, Asaeda T, Wang Q and Rashid MH.<br> <b>Effects of arbuscular mycorrhizal fungi on growth and chlorophyll content of <em>Pharagmites japonica</em> growing on river bank soil</b><br> In: The Proceedings of the 18th Conference of Ecological and Civil Engineering Society of Japan. Tokyo, Japan, 18-21 September, 2014. pp. 279-282.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('AnimeshECES2014','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_AnimeshECES2014" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{AnimeshECES2014,
+  author = {A. Sarkar and T. Asaeda and Q. Wang and M.H. Rashid},
+  title = {Effects of arbuscular mycorrhizal fungi on growth and chlorophyll content of <em>Pharagmites japonica</em> growing on river bank soil},
+  booktitle = {The 18th Conference of Ecological and Civil Engineering Society of Japan},
+  year = {2014},
+  pages = {279-282}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2014" class="entry">
+	<td>Asaeda T, Rashid MH and Bakar R.<br> <b>Dynamic modeling of individual-based tree distribution and edaphic condition of the sediment bars of the midstream reach</b><br> In: The Proceedings of 10th International Symposium on Ecohydraulics. Trondheim, Norway, 23-27 June, 2014. pp. 1-4.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2014','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2014" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2014,
+  author = {T. Asaeda and M.H. Rashid and R.A. Bakar},
+  title = {Dynamic modeling of individual-based tree distribution and edaphic condition of the sediment bars of the midstream reach},
+  booktitle = {10th International Symposium on Ecohydraulics},
+  year = {2014},
+  pages = {1-4}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2014a" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Effects of turbulence on the growth and physiology of aquatic plants</b><br> In: The Proceedings of 10th International Symposium on Ecohydraulics. Trondheim, Norway, 23-27 June, 2014. pp. 1-4.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2014a','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2014a" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2014a,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Effects of turbulence on the growth and physiology of aquatic plants},
+  booktitle = {10th International Symposium on Ecohydraulics},
+  year = {2014},
+  pages = {1-4}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2014b" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Significance of Aquatic Plant Use in Urban Drainage Wetlands</b><br> In: DSD Internation Conference Proceedings. Hong Kong, 12-14 November, 2014. pp. 1-10.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2014b','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2014b" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2014b,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Significance of Aquatic Plant Use in Urban Drainage Wetlands},
+  booktitle = {DSD Internation Conference},
+  year = {2014},
+  pages = {1-10}
+}
+</pre></td>
+</tr>
+<tr id="HarunECES2014" class="entry">
+	<td>Rashid MH and Asaeda T.<br> <b>Seasonal variations of carbohydrates in <em>Pueraria montana</em> related to growth and physiology</b><br> In: The 18th Conference of Ecological and Civil Engineering Society of Japan. Tokyo, Japan, 18-21 September, 2014. pp. 283-286.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('HarunECES2014','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_HarunECES2014" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{HarunECES2014,
+  author = {M.H. Rashid and T. Asaeda},
+  title = {Seasonal variations of carbohydrates in <em>Pueraria montana</em> related to growth and physiology},
+  booktitle = {The 18th Conference of Ecological and Civil Engineering Society of Japan},
+  year = {2014},
+  pages = {283-286}
+}
+</pre></td>
+</tr>
+<tr id="isrsBeijing" class="entry">
+	<td>Rashid MH and Asaeda T.<br> <b>Performance of invasive vines in the floodplain of a regulated river</b><br> In: 10th International Symposium on Ecohydraulics. Trondheim, Norway, 23-27 June, 2014. pp. 1-4.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('isrsBeijing','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_isrsBeijing" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@conference{isrsBeijing,
+  author = {M.H. Rashid and T. Asaeda},
+  title = {Performance of invasive vines in the floodplain of a regulated river},
+  booktitle = {10th International Symposium on Ecohydraulics},
+  year = {2014},
+  pages = {1-4}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2013" class="entry">
+	<td>Asaeda T, Rashid MH and Bakar R.<br> <b>Dynamic modeling of soil nitrogen budget and vegetation colonization in sediment bars of a regulated river </b><br> In: 35th IAHR World Congress. Chengdu, China, 8-13 September, 2013.  Tsinghua University Press, Beijing.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2013','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2013" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2013,
+  author = {T. Asaeda and M.H. Rashid and R.A. Bakar},
+  title = {Dynamic modeling of soil nitrogen budget and vegetation colonization in sediment bars of a regulated river },
+  booktitle = {35th IAHR World Congress},
+  publisher = {Tsinghua University Press, Beijing},
+  year = {2013}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2013a" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Dynamic modelling of vegetation succession and nutrients on frequently flooded sediment bars of modified rivers</b><br> In The 3rd Biennial ISRS Symposium. Beijing, China, pp. 290-296.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2013a','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2013a" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2013a,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Dynamic modelling of vegetation succession and nutrients on frequently flooded sediment bars of modified rivers},
+  booktitle = {The 3rd Biennial ISRS Symposium},
+  year = {2013},
+  pages = {290-296}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2013b" class="entry">
+	<td>Asaeda T, Rashid MH and Ohta K.<br> <b>Effects of symbiotic N- fixation on nitrogen enrichment of floodplain soils</b><br> In: The 3rd Biennial ISRS Symposium. Beijing, China, 5-9 August, 2013. pp. 622-628.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2013b','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2013b" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2013b,
+  author = {T. Asaeda and M.H. Rashid and K. Ohta},
+  title = {Effects of symbiotic N- fixation on nitrogen enrichment of floodplain soils},
+  booktitle = {The 3rd Biennial ISRS Symposium},
+  year = {2013},
+  pages = {622-628}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2013c" class="entry">
+	<td>Asaeda T, Rashid MH, Dong M and Uddin F.<br> <b>The most effective factors responsible for increase in the vegetation coverage of river channels</b><br> In: 35th IAHR World Congress. Chengdu, China, 8-13 September, 2013.  Tsinghua University Press, Beijing.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2013c','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2013c" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2013c,
+  author = {T. Asaeda and M.H. Rashid and M. Dong and F.M.J. Uddin},
+  title = {The most effective factors responsible for increase in the vegetation coverage of river channels},
+  booktitle = {35th IAHR World Congress},
+  publisher = {Tsinghua University Press, Beijing},
+  year = {2013}
+}
+</pre></td>
+</tr>
+<tr id="osakaECES" class="entry">
+	<td>Rashid MH and Asaeda T.<br> <b>Performance of two invasive vines on contrasting floodplain soils subjected to different flooding regimes</b><br> In: Proceedings of 17th ECES Annual Meeting. Osaka, Japan, 18-21 September, 2013. pp. 281-284.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('osakaECES','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_osakaECES" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{osakaECES,
+  author = {M.H. Rashid and T. Asaeda},
+  title = {Performance of two invasive vines on contrasting floodplain soils subjected to different flooding regimes},
+  booktitle = {Proceedings of 17th ECES Annual Meeting},
+  year = {2013},
+  pages = {281-284}
+}
+</pre></td>
+</tr>
+<tr id="Rashid.2013" class="entry">
+	<td>Rashid MH and Asaeda T.<br> <b>Factors controlling the growth and competition of invasive lianas in a river floodplain</b><br> In: The 3rd Biennial ISRS Symposium. Beijing, China, 5-9 August, 2013. pp. 629-635.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Rashid.2013','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Rashid.2013" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Rashid.2013,
+  author = {M.H. Rashid and T. Asaeda},
+  title = {Factors controlling the growth and competition of invasive lianas in a river floodplain},
+  booktitle = {The 3rd Biennial ISRS Symposium},
+  year = {2013},
+  pages = {629-635}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2012" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Impacts of sediment release from a dam on the downstream flood plain vegetation</b><br> In: 9th International Symposium on Ecohydraulics. Vienna, Austria, 17-21 September, 2012. pp. 1-8.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2012','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2012" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2012,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Impacts of sediment release from a dam on the downstream flood plain vegetation},
+  booktitle = {9th International Symposium on Ecohydraulics},
+  year = {2012},
+  pages = {1-8}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2012a" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Modeling of nutrient dynamics and vegetation succession in midstream sediment bars of a regulated river</b><br> In: 9th International Symposium on Ecohydraulics. Vienna, Austria, 17-21 September, 2012. pp. 1-4.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2012a','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2012a" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2012a,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Modeling of nutrient dynamics and vegetation succession in midstream sediment bars of a regulated river},
+  booktitle = {9th International Symposium on Ecohydraulics},
+  year = {2012},
+  pages = {1-4}
+}
+</pre></td>
+</tr>
+<tr id="Asaeda.2010" class="entry">
+	<td>Asaeda T and Rashid MH.<br> <b>Effects of hydrological changes on algal blooming in the reservoir and the required modification for treatments</b><br> In: 8th International Symposium on Ecohydraulics. Seoul, Korea, 12-16 September, 2010. pp. 91-92.
+	<p class="infolinks"> [<a href="javascript:toggleInfo('Asaeda.2010','bibtex')">BibTeX</a>]</p>
+	</td>
+</tr>
+<tr id="bib_Asaeda.2010" class="bibtex noshow">
+<td><b>BibTeX</b>:
+<pre>
+@inproceedings{Asaeda.2010,
+  author = {T. Asaeda and M.H. Rashid},
+  title = {Effects of hydrological changes on algal blooming in the reservoir and the required modification for treatments},
+  booktitle = {8th International Symposium on Ecohydraulics},
+  year = {2010},
+  pages = {91-92}
+}
+</pre></td>
+</tr>
+</tbody>
+</table>
+<footer>
+ <small>Created by <a href="http://jabref.sourceforge.net">JabRef</a> on 14/11/2016.</small>
+</footer>
+<!-- file generated by JabRef -->
+</body>
+</html>
