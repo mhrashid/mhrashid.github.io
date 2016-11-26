@@ -96,16 +96,20 @@ In Japan, there are many business card printing papers available which are very 
 
 
 1.  Created QR code business card (single page) by latex code (as above).
-2.  Install two packages in linux through terminal, if you have not yet installed. `PDFtk` and `PDFjam`. These tow packages can be installed from terminal by
+2.  Install two packages in linux through terminal, if you have not yet installed. `PDFtk` and `PDFjam`. These tow packages can be installed from terminal by  
+
 ```
 sudo apt-get install pdftk', 'sudo apt-get install pdfjam
 ```   
+
 3.  Copy the qrcode.pdf in desktop
-4.  Change directory in terminal.
+4.  Change directory in terminal.  
+
 ```
 cd Desktop
 ```  
-5.  Copy qrcode.pdf 10 times in desktop (by copy-pasting) and rename them 1.pdf....10.pdf
+
+5.  Copy qrcode.pdf 10 times in desktop (by copy-pasting) and rename them 1.pdf....10.pdf.
 6.  In terminal
 ```   
 pdftk 1.pdf 2.pdf 3.pdf 4.pdf 5.pdf 6.pdf 7.pdf 8.pdf 9.pdf 10.pdf cat output merged.pdf
@@ -114,12 +118,15 @@ pdftk 1.pdf 2.pdf 3.pdf 4.pdf 5.pdf 6.pdf 7.pdf 8.pdf 9.pdf 10.pdf cat output me
 The source for this code is [here](http://superuser.com/questions/366490/how-to-merge-multiple-pdf-files-onto-one-page-with-pdftk).
 
 7.  In terminal
+
 ```
 pdfjam --nup 2x5 --papersize '{8.5in,11in}' --noautoscale true merged.pdf -o 10upcard.pdf
 ```   
 
 The source for this code is [here](http://askubuntu.com/questions/30962/good-business-card-creation-software).
+
 8.  10upcard.pdf is the output pdf. Print it in Japanese business card paper. Set the printer in 'no scaling' and 'Auto center enabled'.
+
 9.  I used Foxit PDF Reader since Adobe PDF Reader was not working well. doesn't work good.
 
 
