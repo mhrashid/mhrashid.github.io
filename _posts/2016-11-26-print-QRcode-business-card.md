@@ -26,7 +26,7 @@ Academia also adopted the idea of QR codes for many uses. Poster presenters are 
 
 ####  Preparing of QR code business card    
 
-There are thousands of business card templates out there. You can pick one and modify to fit in your QR code. Any free online QR code generator will make you one. For example, [this site](http://goqr.me/) seems fine to me. Select the type of your code. For business card, probably you would like to select ‘vcard’ option. Plug-in you information and download the image. Viola! Now you are ready to include your QR code in your business card.
+There are thousands of business card templates out there. You can pick one and modify to fit in your QR code. Any free online QR code generator will make you one. For example, [this site](http://goqr.me/) seems fine to me. Select the type of your code. For business card, probably you would like to select ‘vcard’ option. Plug-in you information and download the image. Voilà! Now you are ready to include your QR code in your business card.
 
 ####  LaTeX based QR code business card   
 
