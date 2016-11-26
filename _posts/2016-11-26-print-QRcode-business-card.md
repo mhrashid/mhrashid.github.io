@@ -125,8 +125,7 @@ pdfjam --nup 2x5 --papersize '{8.5in,11in}' --noautoscale true merged.pdf -o 10u
 
 The source for this code is [here](http://askubuntu.com/questions/30962/good-business-card-creation-software).
 
--  10upcard.pdf is the output pdf. Print it in Japanese business card paper. Set the printer in 'no scaling' and 'Auto center enabled'.
-
+-   The output pdf is 10upcard.pdf. Print it in Japanese business card paper. Set the printer in "no scaling" and "Auto center enabled".  
 -  I used Foxit PDF Reader since Adobe PDF Reader was not working well. doesn't work good.
 
 
