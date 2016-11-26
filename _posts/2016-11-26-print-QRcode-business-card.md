@@ -47,7 +47,7 @@ This is how I configured TeXstudio to compile the file.
 <a href="http://imgur.com/c9xnmdw"><img src="http://i.imgur.com/c9xnmdw.png" title="source: imgur.com" /></a>
 
 
-Before compiling the Tex file,  the dimension of the card in this LaTeX code (85 x 55, which is [UK standard])(https://en.wikipedia.org/wiki/Business_card) needed to be adjusted to Japan Standard. So I tweaked the dimension to 91 x 55. I also changed the color of the horizontal rules and QR codes to 'gray'.
+Before compiling the Tex file,  the dimension of the card in this LaTeX code (85 x 55, which is [UK standard](https://en.wikipedia.org/wiki/Business_card)) needed to be adjusted to Japan Standard. So I tweaked the dimension to 91 x 55. I also changed the color of the horizontal rules and QR codes to 'gray'.
 
 Finally this is what the preamble of my .tex file looked like
 
