@@ -13,7 +13,7 @@ $paragraph-indent           : false; // true, false (default)
 $indent-var                 : 1.3em;
 
 /* system typefaces */
-$serif                      : Arvo, Georgia, Times;
+$serif                      : "Helvetica Neue", Georgia, Times;
 $sans-serif                 : Prociono, "Lucida Grande", "Segoe UI", "Helvetica Neue", -apple-system, ".SFNSText-Regular", "San Francisco", "Roboto", Arial, sans-serif;
 $monospace                  : "Lucida Console", Monaco, Consolas, monospace;
 
@@ -29,7 +29,7 @@ $calisto                    : "Calisto MT", serif;
 $garamond                   : Garamond, serif;
 
 $global-font-family         : Arvo, $helvetica;
-$header-font-family         : Arvo, $helvetica;
+$header-font-family         : $helvetica;
 $caption-font-family        : $serif;
 
 /* type scale */
