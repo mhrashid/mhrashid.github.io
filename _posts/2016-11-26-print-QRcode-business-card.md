@@ -88,7 +88,7 @@ Finally this is what the preamble of my .tex file looked like
 Finally I could make a single card. Now I can print it in multipage option and split individual cards with cutter/blade. There are some other LaTeX codes for QR code business card which will produce a pdf with multiple cards. But I didn’t like the design. Instead I used PdfTK command line tool in Linux (Ubuntu) to make the multi-card pdf.
 
 
-####  How to print multple business cards on a single page      
+####  How to print multple business cards on a single page   
 
 In Japan, there are many business card printing papers available which are very convenient. Once a multi-card pdf is printed on this paper, the individual cards can be split seamlessly since there are splitting lines.
 
