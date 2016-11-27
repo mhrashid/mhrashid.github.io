@@ -88,7 +88,7 @@ Finally this is what the preamble of my .tex file looked like
 Finally I could make a single card. Now I can print it in multipage option and split individual cards with cutter/blade. There are some other LaTeX codes for QR code business card which will produce a pdf with multiple cards. But I didn’t like the design. Instead I used PdfTK command line tool in Linux (Ubuntu) to make the multi-card pdf.
 
 
-####  How to print the business card in multiple pages      
+####  How to print multple business cards on a single page      
 
 In Japan, there are many business card printing papers available which are very convenient. Once a multi-card pdf is printed on this paper, the individual cards can be split seamlessly since there are splitting lines.
 
@@ -110,14 +110,15 @@ cd Desktop
 ```  
 
 -  Copy qrcode.pdf 10 times in desktop (by copy-pasting) and rename them 1.pdf....10.pdf.
--  In terminal
+-  In terminal, execute the following command   
+
 ```   
 pdftk 1.pdf 2.pdf 3.pdf 4.pdf 5.pdf 6.pdf 7.pdf 8.pdf 9.pdf 10.pdf cat output merged.pdf
 ```   
 
 The source for this code is [here](http://superuser.com/questions/366490/how-to-merge-multiple-pdf-files-onto-one-page-with-pdftk).
 
--  In terminal
+-  In a terminal, execute the following command   
 
 ```
 pdfjam --nup 2x5 --papersize '{8.5in,11in}' --noautoscale true merged.pdf -o 10upcard.pdf
