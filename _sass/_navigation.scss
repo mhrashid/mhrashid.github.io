@@ -371,10 +371,11 @@
    ========================================================================== */
 
 .toc {
-  font-family: $sans-serif-narrow;
+  font-family: $sans-serif;
   color: $gray;
   /* text-transform: uppercase;*/
   letter-spacing: 1px;
+  font-size: $type-size-65;
   background-color: #fff;
   border: 1px solid $border-color;
   border-radius: $border-radius;
@@ -382,7 +383,7 @@
 
   .nav__title {
     color: #fff;
-    font-size: $type-size-55;
+    font-size: $type-size-6;
     background: $primary-color;
     border-top-left-radius: $border-radius;
     border-top-right-radius: $border-radius;
@@ -401,7 +402,7 @@
     padding: 0.5rem 1rem;
     color: $gray;
     font-size: $type-size-7;
-    font-weight: bold;
+    font-weight: normal;
     line-height: 1.5;
     border-bottom: 1px solid $border-color;
 
