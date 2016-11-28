@@ -8,7 +8,8 @@ share: true
 excerpt: "I have shared my experience in printing QR code business cards in LaTeX."
 #categories: category1 category2
 ---
-{% include toc %}
+{% include toc %}  
+
 {% render_time Page generated at: %}
 
 <p align="left">
