@@ -9,6 +9,7 @@ excerpt: "I have shared my experience in printing QR code business cards in LaTe
 #categories: category1 category2
 ---
 {% include toc %}
+{% render_time Page generated at: %}
 
 <p align="left">
 <a href="http://imgur.com/4H9NMJt"><img src="http://i.imgur.com/4H9NMJt.png" title="source: imgur.com" /></a>
