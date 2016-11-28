@@ -186,6 +186,7 @@ gems:
   - jekyll-gist
   - jekyll-feed
   - jemoji
+  - render_time
 
 # mimic GitHub Pages with --safe
 whitelist:
