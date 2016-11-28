@@ -5,6 +5,7 @@ date:   2016-11-23 00:06:21 +0900
 read_time: true
 comments: true
 share: true
+excerpt: "In this post, I have listed down the free softwares and tools that I use on daily basis."
 #categories: category1 category2
 ---
 {% include toc %}
