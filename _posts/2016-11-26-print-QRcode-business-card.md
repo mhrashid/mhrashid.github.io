@@ -5,6 +5,7 @@ date:   2016-11-23 00:06:21 +0900
 read_time: true
 comments: true
 share: true
+excerpt: "I have shared my experience in printing QR code business cards in LaTeX."
 #categories: category1 category2
 ---
 {% include toc %}
