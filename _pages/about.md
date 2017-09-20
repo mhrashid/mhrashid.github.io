@@ -6,14 +6,13 @@ share: true
 
 #### Who Am I?   
 Dr. Md. Harun Or Rashid  
-Assistant Professor  
-Department of Environmental Science  
-Graduate School of Science & Engineering  
-Saitama University  
+Associate Professor  
+Department of Agronomy  
+Faculty of Agriculture  
+Bangladesh Agricultural University  
 
-255 Shimo-okubo, Sakura-ku  
-Saitama 338-8570  
-Japan  
+Mymensingh, Postal code: 2202    
+BANGLADESH  
 
 ------   
 
